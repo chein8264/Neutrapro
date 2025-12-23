@@ -75,7 +75,7 @@ def read_fasta_file(fasta_path):
     return sequences
 
 
-def process_sequences(seq_dict, model, tokenizer, emb_path, per_protein, max_residues, max_seq_len, max_batch):
+def process_sequences(seq_dict, model, tokenizer, emb_path, per_protein, max_residues, max_seq_len, max_batch, resume=False, limit=None):
     """
     Generate embeddings for sequences and save them to an HDF5 file.
 
@@ -98,30 +98,71 @@ def process_sequences(seq_dict, model, tokenizer, emb_path, per_protein, max_res
     logging.info(f"Average sequence length: {avg_length}")
     logging.info(f"Number of sequences > {max_seq_len}: {n_long}")
 
-    # Sort sequences by length (descending)
-    seq_dict = sorted(seq_dict.items(), key=lambda x: len(x[1]), reverse=True)
+    # Sort sequences by length (ascending) to process shorter ones first
+    seq_dict = sorted(seq_dict.items(), key=lambda x: len(x[1]), reverse=False)
 
     start_time = time.time()
-    embeddings = {}
+    processed = 0
+    h5_mode = "a"
+    recreate = False
+    try:
+        tmp = h5py.File(emb_path, h5_mode)
+        try:
+            _ = list(tmp.keys())
+        except Exception:
+            recreate = True
+        finally:
+            tmp.close()
+    except OSError:
+        recreate = True
+    hdf5_file = h5py.File(emb_path, "w" if recreate else h5_mode)
+    with hdf5_file as hdf5_file:
+        for seq_idx, (seq_id, seq) in enumerate(seq_dict, 1):
+            if limit is not None and processed >= limit:
+                break
+            if resume and seq_id in hdf5_file:
+                continue
+            total_len = len(seq)
+            if per_protein:
+                # Mean-pooled embedding over full sequence using chunking
+                sum_emb = None
+                count_res = 0
+            else:
+                parts = []
 
-    batch = []
-    for seq_idx, (seq_id, seq) in enumerate(seq_dict, 1):
-        seq_len = len(seq)
-        seq = ' '.join(list(seq))  # Add spaces between amino acids
-        batch.append((seq_id, seq, seq_len))
+            for start in range(0, total_len, max_seq_len):
+                end = min(start + max_seq_len, total_len)
+                sub = seq[start:end]
+                sub_spaced = ' '.join(list(sub))
+                token_encoding = tokenizer.batch_encode_plus([sub_spaced], add_special_tokens=True, padding=False)
+                input_ids = torch.tensor(token_encoding['input_ids']).to(device)
+                attention_mask = torch.tensor(token_encoding['attention_mask']).to(device)
+                with torch.no_grad():
+                    embedding_repr = model(input_ids, attention_mask=attention_mask)
+                emb_sub = embedding_repr.last_hidden_state[0, : (end - start)]
+                if per_protein:
+                    sum_emb = emb_sub.sum(dim=0) if sum_emb is None else sum_emb + emb_sub.sum(dim=0)
+                    count_res += (end - start)
+                else:
+                    parts.append(emb_sub.cpu())
 
-        # Check if batch exceeds limits
-        n_res_batch = sum(s_len for _, _, s_len in batch) + seq_len
-        if len(batch) >= max_batch or n_res_batch >= max_residues or seq_idx == len(seq_dict) or seq_len > max_seq_len:
-            process_batch(batch, model, tokenizer, embeddings, per_protein)
-            batch = []
+            if per_protein:
+                emb = (sum_emb / max(count_res, 1)).cpu().numpy()
+            else:
+                emb = torch.cat(parts, dim=0).numpy()
+
+            if seq_id in hdf5_file:
+                continue
+            hdf5_file.create_dataset(seq_id, data=emb)
+            logging.info(f"Processed sequence ID: {seq_id}, Length: {total_len}")
+            processed += 1
 
     # Save embeddings to HDF5
-    save_embeddings_to_hdf5(embeddings, emb_path)
+    
 
     end_time = time.time()
-    logging.info(f"Total embeddings: {len(embeddings)}")
-    logging.info(f"Total time: {end_time - start_time:.2f}s; Time per protein: {(end_time - start_time) / len(embeddings):.4f}s")
+    logging.info(f"Total processed (new): {processed}")
+    logging.info(f"Total time: {end_time - start_time:.2f}s")
 
 
 def process_batch(batch, model, tokenizer, embeddings, per_protein):
@@ -190,14 +231,19 @@ def parse_arguments():
         argparse.Namespace: Parsed arguments.
     """
     parser = argparse.ArgumentParser(description="Generate T5 embeddings for protein sequences in FASTA format.")
-    parser.add_argument('--fasta_path', required=False, type=str, default="/data/qin2/chein/NeutraPro/data/human_data_balanced.fasta",
-                        help="Path to the input FASTA file. Default: '/data/qin2/chein/NeutraPro/data/human_data_balanced.fasta'")
-    parser.add_argument('--save_path', required=False, type=str, default="/data/qin2/chein/NeutraPro/data/embeddings.h5",
-                        help="Path to save the embeddings. Default: '/data/qin2/chein/NeutraPro/data/embeddings.h5'")
-    parser.add_argument('--model', type=str, default="/data/qin2/chein/NeutraPro/pretrain_model",
-                        help="Path to the cached model directory. Default: '/data/qin2/chein/NeutraPro/pretrain_model'")
-    parser.add_argument('--per_protein', type=int, default=1,
-                        help="Return mean-pooled embeddings (1) or per-residue embeddings (0). Default: 1")
+    parser.add_argument('--fasta_path', required=False, type=str, default="data/train/human_balanced.fasta",
+                        help="Path to the input FASTA file. Default: 'data/train/human_balanced.fasta'")
+    parser.add_argument('--save_path', required=False, type=str, default="data/train/embeddings.h5",
+                        help="Path to save the embeddings. Default: 'data/train/embeddings.h5'")
+    parser.add_argument('--model', type=str, default=None,
+                        help="Path to the cached model directory. Default: None (use huggingface cache)")
+    parser.add_argument('--per_protein', type=int, default=0,
+                        help="Return mean-pooled embeddings (1) or per-residue embeddings (0). Default: 0")
+    parser.add_argument('--max_batch', type=int, default=100, help='Maximum sequences per batch')
+    parser.add_argument('--max_residues', type=int, default=4000, help='Maximum residues per batch')
+    parser.add_argument('--max_seq_len', type=int, default=1000, help='Maximum sequence length')
+    parser.add_argument('--resume', type=int, default=0, help='Resume and skip existing entries in HDF5')
+    parser.add_argument('--limit', type=int, default=None, help='Limit number of sequences to process')
     return parser.parse_args()
 
 
@@ -213,7 +259,18 @@ def main():
 
     seq_dict = read_fasta_file(seq_path)
     model, tokenizer = load_t5_model(model_dir)
-    process_sequences(seq_dict, model, tokenizer, emb_path, per_protein, max_residues=4000, max_seq_len=1000, max_batch=100)
+    process_sequences(
+        seq_dict,
+        model,
+        tokenizer,
+        emb_path,
+        per_protein,
+        max_residues=args.max_residues,
+        max_seq_len=args.max_seq_len,
+        max_batch=args.max_batch,
+        resume=bool(args.resume),
+        limit=args.limit,
+    )
 
 
 if __name__ == '__main__':

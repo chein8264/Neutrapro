@@ -10,11 +10,13 @@ import argparse
 import sys
 from pathlib import Path
 
-def create_training_pkl(input_csv: str, output_pkl: str = None, 
-                       id_column: str = 'transcript', 
+def create_training_pkl(input_csv: str, output_pkl: str = None,
+                       id_column: str = 'transcript',
                        sequence_column: str = 'protein_sequence_cleaned',
                        label_column: str = 'protein_essentiality',
-                       use_cleaned_sequence: bool = True):
+                       use_cleaned_sequence: bool = True,
+                       write_fasta: bool = False,
+                       fasta_output: str = None):
     """
     Create a training pkl file from processed CSV data.
     
@@ -105,11 +107,9 @@ def create_training_pkl(input_csv: str, output_pkl: str = None,
     print(f"\nSample of training data:")
     print(training_df.head().to_string(index=False))
     
-    # Set output path
     if output_pkl is None:
-        # Save as human.pkl in same directory as input file
         input_path = Path(input_csv)
-        output_pkl = input_path.parent / "human.pkl"
+        output_pkl = input_path.parent / "human_full.pkl"
     
     # Save pkl file
     print(f"\nSaving training data to {output_pkl}...")
@@ -127,6 +127,16 @@ def create_training_pkl(input_csv: str, output_pkl: str = None,
     print(f"Verification successful - loaded {len(loaded_df)} rows")
     print(f"Columns: {list(loaded_df.columns)}")
     
+    if write_fasta:
+        if fasta_output is None:
+            fasta_output = str(Path(input_csv).parent / "human_full.fasta")
+        print(f"\nWriting FASTA to {fasta_output}...")
+        with open(fasta_output, 'w') as fout:
+            for _, row in training_df.iterrows():
+                fout.write(f">index-{row['index']}\n")
+                fout.write(f"{row['sequence']}\n")
+        print("FASTA writing completed")
+
     return training_df
 
 def main():
@@ -138,6 +148,8 @@ def main():
     parser.add_argument('--label-column', default='protein_essentiality', help='Column name for labels (default: protein_essentiality)')
     parser.add_argument('--use-original-sequence', action='store_true', help='Use original sequences instead of cleaned sequences')
     parser.add_argument('--preview-only', action='store_true', help='Only preview the data without creating pkl file')
+    parser.add_argument('--write-fasta', action='store_true', help='Also export FASTA with header index-<index>')
+    parser.add_argument('--fasta-output', help='Output FASTA path')
     
     args = parser.parse_args()
     
@@ -173,12 +185,14 @@ def main():
         use_cleaned = not args.use_original_sequence
         
         create_training_pkl(
-            args.input_csv, 
+            args.input_csv,
             args.output,
             args.id_column,
             args.sequence_column,
             args.label_column,
-            use_cleaned
+            use_cleaned,
+            args.write_fasta,
+            args.fasta_output
         )
         
     except Exception as e:
