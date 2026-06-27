@@ -75,6 +75,16 @@ def read_fasta_file(fasta_path):
     return sequences
 
 
+def sanitize_sequence(seq):
+    """
+    Normalize sequences per ProtT5 recommendations (uppercase, replace rare tokens, drop stop codons).
+    """
+    seq = seq.replace("*", "").replace(" ", "").upper()
+    for ch in "UZOB":
+        seq = seq.replace(ch, "X")
+    return seq
+
+
 def process_sequences(seq_dict, model, tokenizer, emb_path, per_protein, max_residues, max_seq_len, max_batch, resume=False, limit=None):
     """
     Generate embeddings for sequences and save them to an HDF5 file.
@@ -122,6 +132,7 @@ def process_sequences(seq_dict, model, tokenizer, emb_path, per_protein, max_res
                 break
             if resume and seq_id in hdf5_file:
                 continue
+            seq = sanitize_sequence(seq)
             total_len = len(seq)
             if per_protein:
                 # Mean-pooled embedding over full sequence using chunking
@@ -134,12 +145,15 @@ def process_sequences(seq_dict, model, tokenizer, emb_path, per_protein, max_res
                 end = min(start + max_seq_len, total_len)
                 sub = seq[start:end]
                 sub_spaced = ' '.join(list(sub))
-                token_encoding = tokenizer.batch_encode_plus([sub_spaced], add_special_tokens=True, padding=False)
+                token_encoding = tokenizer.batch_encode_plus([sub_spaced], add_special_tokens=True, padding="longest")
                 input_ids = torch.tensor(token_encoding['input_ids']).to(device)
                 attention_mask = torch.tensor(token_encoding['attention_mask']).to(device)
                 with torch.no_grad():
                     embedding_repr = model(input_ids, attention_mask=attention_mask)
-                emb_sub = embedding_repr.last_hidden_state[0, : (end - start)]
+                valid_len = int(attention_mask[0].sum().item()) - 1  # drop EOS
+                if valid_len <= 0:
+                    continue
+                emb_sub = embedding_repr.last_hidden_state[0, :valid_len]
                 if per_protein:
                     sum_emb = emb_sub.sum(dim=0) if sum_emb is None else sum_emb + emb_sub.sum(dim=0)
                     count_res += (end - start)

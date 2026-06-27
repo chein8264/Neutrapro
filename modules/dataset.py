@@ -66,7 +66,12 @@ class H5PklDataset(Dataset):
         """
         # Retrieve dataset name and feature from h5 file
         dataset_name = self.datasets[idx]
-        feature = self.h5_file[dataset_name][()]  # Load feature as a numpy array (2D)
+        feature = self.h5_file[dataset_name][()]  # Load feature as a numpy array
+        if feature.ndim == 1:
+            # Per-protein mean embedding; keep a sequence dimension for downstream code.
+            feature = feature.reshape(1, -1)
+        elif feature.ndim != 2:
+            raise ValueError(f"Expected feature to be 1D or 2D, but got shape {feature.shape}")
 
         # Extract index from dataset name (e.g., "index-123")
         index = int(dataset_name.split('-')[-1])
