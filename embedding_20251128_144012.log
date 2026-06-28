@@ -1,0 +1,8 @@
+2025-11-28 14:40:12,450 - INFO - Starting the embedding process...
+2025-11-28 14:40:12,451 - INFO - Using device: cpu
+2025-11-28 14:40:12,545 - INFO - Loaded 68876 sequences from data/train/human_full.fasta
+2025-11-28 14:40:12,545 - INFO - Loading model: Rostlab/prot_t5_xl_half_uniref50-enc
+2025-11-28 14:40:14,121 - INFO - Casting model to full precision for CPU...
+2025-11-28 14:40:14,471 - INFO - Total sequences: 68876
+2025-11-28 14:40:14,492 - INFO - Average sequence length: 442.2514954410825
+2025-11-28 14:40:14,492 - INFO - Number of sequences > 1000: 6087

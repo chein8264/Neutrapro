@@ -1,0 +1,21 @@
+/home/tangjian/miniconda3/envs/neutrapro/lib/python3.8/site-packages/transformers/utils/hub.py:128: FutureWarning: Using `TRANSFORMERS_CACHE` is deprecated and will be removed in v5 of Transformers. Use `HF_HOME` instead.
+  warnings.warn(
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 34a0bf12-f252-4531-b234-d232a6176ccb)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 86505378-307d-453b-8c50-b32dd4ad5be5)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 2s [Retry 2/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 282981ad-62bf-4589-8232-cb835541efbe)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 4s [Retry 3/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 086559eb-6ee4-4e45-bd8b-7566eac0e64d)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 8s [Retry 4/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: ac5fb2d8-4c74-45a4-9f72-678941df8fac)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 8s [Retry 5/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 1c66e923-8d3b-4078-a72c-8532482fb184)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: f568d0c2-6955-4112-be9b-bc4fb504223f)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 1s [Retry 1/5].
+'(ReadTimeoutError("HTTPSConnectionPool(host='huggingface.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 17b26fe0-0a6c-42a6-829f-85966ad74e8b)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 2s [Retry 2/5].
+'(MaxRetryError("HTTPSConnectionPool(host='huggingface.co', port=443): Max retries exceeded with url: /Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json (Caused by SSLError(SSLZeroReturnError(6, 'TLS/SSL connection has been closed (EOF) (_ssl.c:1149)')))"), '(Request ID: 6d396091-4761-47de-a23f-71eb92230d85)')' thrown while requesting HEAD https://huggingface.co/Rostlab/prot_t5_xl_half_uniref50-enc/resolve/main/config.json
+Retrying in 4s [Retry 3/5].
+You are using the default legacy behaviour of the <class 'transformers.models.t5.tokenization_t5.T5Tokenizer'>. This is expected, and simply means that the `legacy` (previous) behavior will be used so nothing changes for you. If you want to use the new behaviour, set `legacy=False`. This should only be set if you understand what it means, and thoroughly read the reason why this was added as explained in https://github.com/huggingface/transformers/pull/24565
+

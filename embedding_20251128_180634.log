@@ -1,0 +1,5 @@
+2025-11-28 18:06:34,655 - INFO - Starting the embedding process...
+2025-11-28 18:06:34,655 - INFO - Using device: cpu
+2025-11-28 18:06:34,862 - INFO - Loaded 68876 sequences from data/train/human_full.fasta
+2025-11-28 18:06:34,862 - INFO - Loading model: Rostlab/prot_t5_xl_half_uniref50-enc
+2025-11-28 18:06:34,863 - INFO - Loading cached model from: /home/tangjian/.cache/huggingface
